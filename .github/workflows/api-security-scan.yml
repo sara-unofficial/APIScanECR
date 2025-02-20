@@ -1,0 +1,42 @@
+name: API Security Scan with OWASP ZAP
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * 1'
+
+jobs:
+  zap_scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    - name: Run OWASP ZAP API Scan
+      id: zap_scan
+      uses: zaproxy/action-api-scan@v0.7.0
+      with:
+        target: 'http:://435459653696.dkr.ecr.ap-south-1.amazonaws.com/v2/tester/manifests/newgenerated'  
+        rules_file_name: '.zap/rules.tsv'            
+        allow_issue_writing: false                 
+        fail_action: false                           
+
+    - name: Sanitize Artifact Name
+      id: sanitize
+      run: |
+    
+        ARTIFACT_NAME="ZAP-API-Scan-Report"
+        SANITIZED_NAME=$(echo "$ARTIFACT_NAME" | sed 's/[^a-zA-Z0-9._-]/-/g')
+
+        echo "artifact_name=$SANITIZED_NAME" >> $GITHUB_OUTPUT
+
+    - name: Upload Scan Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.sanitize.outputs.artifact_name }}
+        path: zap_scan_results.json
